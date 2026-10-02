@@ -3,92 +3,172 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Squeeze Image Utility</title>
+  <title>squeeze / image utility</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background-color: #0b1329; color: #ffffff; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 15px; }
-    .card { background: #131c38; border: 1px solid #1f2d52; border-radius: 20px; padding: 24px; width: 100%; max-width: 440px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
-    h1 { font-size: 20px; font-weight: 700; text-align: center; color: #38bdf8; margin-bottom: 4px; }
-    p.subtitle { color: #94a3b8; font-size: 12px; text-align: center; margin-bottom: 20px; }
-    .upload-area { border: 2px dashed #1e293b; border-radius: 12px; padding: 35px 20px; text-align: center; cursor: pointer; background: #0f172a; transition: all 0.2s ease; }
-    .upload-area:hover { border-color: #38bdf8; background: #152238; }
-    .folder-icon { font-size: 36px; margin-bottom: 8px; }
-    .upload-text { font-size: 14px; font-weight: 600; color: #cbd5e1; }
-    .upload-formats { font-size: 11px; color: #64748b; margin-top: 4px; }
-    input[type="file"] { display: none; }
+    body { background-color: #f4f6f0; color: #1e293b; min-height: 100vh; padding: 20px; display: flex; justify-content: center; }
+    .container { width: 100%; max-width: 480px; }
     
-    .preset-container { display: flex; gap: 8px; margin-top: 15px; }
-    .preset-btn { flex: 1; padding: 8px; background: #1e293b; border: 1px solid #334155; border-radius: 8px; color: #38bdf8; font-size: 12px; font-weight: 600; cursor: pointer; }
-    .preset-btn:hover { background: #38bdf8; color: #0f172a; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .logo { font-weight: 700; font-size: 16px; color: #0f172a; display: flex; align-items: center; gap: 6px; }
+    .badge { background: #e2f1e1; color: #15803d; font-size: 11px; font-weight: 600; padding: 4px 8px; border-radius: 20px; }
 
-    .controls-box { margin-top: 18px; display: none; }
-    .slider-info { display: flex; justify-content: space-between; font-size: 13px; color: #cbd5e1; margin-bottom: 8px; }
-    input[type="range"] { width: 100%; height: 6px; border-radius: 3px; accent-color: #10b981; cursor: pointer; }
+    .tagline-box { margin-bottom: 20px; }
+    .tagline-sub { font-size: 11px; font-weight: 700; letter-spacing: 1px; color: #64748b; text-transform: uppercase; }
+    .tagline-title { font-size: 32px; font-weight: 800; color: #0f172a; line-height: 1.1; margin-top: 4px; }
+    .tagline-title span { color: #3b82f6; }
+    .tagline-desc { font-size: 13px; color: #64748b; margin-top: 8px; line-height: 1.4; }
 
-    .preview-box { display: none; margin-top: 15px; text-align: center; }
-    .preview-box img { max-width: 100%; max-height: 180px; border-radius: 10px; border: 1px solid #334155; margin-bottom: 12px; }
-    .file-size { font-size: 15px; font-weight: 700; color: #10b981; margin-bottom: 15px; }
-    .btn-download { width: 100%; background: #10b981; color: #0b1329; border: none; padding: 12px; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; transition: 0.2s; }
-    .btn-download:hover { background: #34d399; }
+    /* Dropbox Card */
+    .card { background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 20px; padding: 30px 20px; text-align: center; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 20px rgba(0,0,0,0.03); }
+    .card:hover { border-color: #3b82f6; background: #f8fafc; }
+    .icon-box { width: 48px; height: 48px; background: #e0f2fe; color: #0284c7; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 20px; }
+    .upload-title { font-size: 16px; font-weight: 700; color: #0f172a; }
+    .upload-sub { font-size: 12px; color: #64748b; margin-top: 4px; }
+    input[type="file"] { display: none; }
+
+    /* Controls Section */
+    .editor-section { display: none; margin-top: 20px; }
+    
+    .preview-card { background: #ffffff; border-radius: 16px; padding: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); margin-bottom: 15px; }
+    .img-container { text-align: center; background: #f8fafc; border-radius: 12px; padding: 10px; border: 1px solid #f1f5f9; }
+    .img-container img { max-width: 100%; max-height: 200px; border-radius: 8px; object-fit: contain; }
+    
+    .size-info-row { display: flex; justify-content: space-between; margin-top: 12px; font-size: 13px; font-weight: 600; color: #64748b; }
+    .size-info-row .new-size { color: #0f172a; font-weight: 700; }
+
+    .control-card { background: #ffffff; border-radius: 16px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); }
+    .control-title { font-size: 16px; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+    .control-desc { font-size: 12px; color: #64748b; margin-bottom: 15px; }
+
+    /* Quick Presets */
+    .preset-row { display: flex; gap: 8px; margin-bottom: 15px; }
+    .preset-btn { flex: 1; padding: 8px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 8px; color: #0f172a; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .preset-btn:hover { background: #e2e8f0; }
+
+    /* Slider Control */
+    .label-row { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; color: #0f172a; margin-bottom: 8px; }
+    .slider-row { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+    .step-btn { background: #f1f5f9; border: 1px solid #cbd5e1; width: 36px; height: 36px; border-radius: 8px; font-size: 18px; font-weight: bold; color: #0f172a; cursor: pointer; display: flex; align-items: center; justify-content: center; user-select: none; }
+    .step-btn:active { background: #e2e8f0; }
+    input[type="range"] { flex: 1; height: 6px; accent-color: #0284c7; cursor: pointer; }
+
+    /* Format Selection */
+    .format-label { font-size: 13px; font-weight: 600; color: #0f172a; margin-bottom: 8px; }
+    .format-row { display: flex; gap: 8px; margin-bottom: 15px; }
+    .format-btn { flex: 1; padding: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 12px; font-weight: 700; color: #64748b; cursor: pointer; }
+    .format-btn.active { background: #0f172a; color: #ffffff; border-color: #0f172a; }
+
+    .savings-badge { background: #e0f2fe; color: #0369a1; padding: 12px; border-radius: 10px; text-align: center; font-size: 14px; font-weight: 700; margin-bottom: 15px; }
+
+    .btn-download { width: 100%; background: #059669; color: #ffffff; border: none; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; transition: 0.2s; }
+    .btn-download:hover { background: #047857; }
   </style>
 </head>
 <body>
 
-  <div class="card">
-    <h1>Squeeze Image Utility</h1>
-    <p class="subtitle">Compress Images for Govt Forms (&lt;20KB / &lt;50KB)</p>
+  <div class="container">
+    <div class="header">
+      <div class="logo">⚡ squeeze / image utility</div>
+      <div class="badge">100% LOCAL PROCESSING</div>
+    </div>
 
-    <div class="upload-area" onclick="document.getElementById('fileInput').click()">
-      <div class="folder-icon">📂</div>
-      <div class="upload-text">Tap to Choose Photo</div>
-      <div class="upload-formats">Supports JPG, PNG, WEBP</div>
+    <div class="tagline-box">
+      <div class="tagline-sub">A LIGHTER WAY TO SHARE</div>
+      <div class="tagline-title">Less weight.<br><span>Same image.</span></div>
+      <div class="tagline-desc">Make images smaller for Govt Forms (<20KB / <50KB). No upload to server.</div>
+    </div>
+
+    <!-- Upload Box -->
+    <div class="card" onclick="document.getElementById('fileInput').click()">
+      <div class="icon-box">⇡</div>
+      <div class="upload-title">Drop an image here</div>
+      <div class="upload-sub">JPG, PNG, WEBP, GIF · up to 50 MB</div>
       <input type="file" id="fileInput" accept="image/jpeg, image/png, image/webp">
     </div>
 
-    <div class="controls-box" id="controlsBox">
-      <div class="preset-container">
-        <button class="preset-btn" onclick="applyTarget(20)">Target &lt; 20KB</button>
-        <button class="preset-btn" onclick="applyTarget(50)">Target &lt; 50KB</button>
+    <!-- Editor / Preview Box -->
+    <div class="editor-section" id="editorSection">
+      
+      <div class="preview-card">
+        <div class="img-container">
+          <img id="imagePreview" src="" alt="Preview">
+        </div>
+        <div class="size-info-row">
+          <span>Original: <span id="origSizeText">0 KB</span></span>
+          <span class="new-size">New size: <span id="newSizeText">0 KB</span></span>
+        </div>
       </div>
 
-      <div style="margin-top: 15px;" class="slider-info">
-        <span>Compression Quality</span>
-        <span id="qualityText">70%</span>
-      </div>
-      <input type="range" id="qualitySlider" min="1" max="100" value="70">
-    </div>
+      <div class="control-card">
+        <div class="control-title">Make it lighter</div>
+        <div class="control-desc">Tune the balance between a crisp image and a tiny file.</div>
 
-    <div class="preview-box" id="previewBox">
-      <img id="imagePreview" src="" alt="Compressed Preview">
-      <div class="file-size" id="fileSizeText">Size: -- KB</div>
-      <button class="btn-download" id="downloadBtn">Download Image</button>
+        <div class="preset-row">
+          <button class="preset-btn" onclick="applyTarget(20)">Target < 20KB</button>
+          <button class="preset-btn" onclick="applyTarget(50)">Target < 50KB</button>
+        </div>
+
+        <div class="label-row">
+          <span>Quality</span>
+          <span id="qualityText">75%</span>
+        </div>
+
+        <div class="slider-row">
+          <button class="step-btn" onclick="changeQuality(-1)">−</button>
+          <input type="range" id="qualitySlider" min="1" max="100" value="75">
+          <button class="step-btn" onclick="changeQuality(1)">+</button>
+        </div>
+
+        <div class="format-label">Output format</div>
+        <div class="format-row">
+          <button class="format-btn" id="fmtJpeg" onclick="setFormat('image/jpeg')">JPG</button>
+          <button class="format-btn" id="fmtPng" onclick="setFormat('image/png')">PNG</button>
+          <button class="format-btn active" id="fmtWebp" onclick="setFormat('image/webp')">WEBP</button>
+        </div>
+
+        <div class="savings-badge" id="savingsText">0% smaller file</div>
+
+        <button class="btn-download" id="downloadBtn">Download Image</button>
+      </div>
+
     </div>
   </div>
 
   <script>
     const fileInput = document.getElementById('fileInput');
-    const controlsBox = document.getElementById('controlsBox');
+    const editorSection = document.getElementById('editorSection');
     const qualitySlider = document.getElementById('qualitySlider');
     const qualityText = document.getElementById('qualityText');
-    const previewBox = document.getElementById('previewBox');
     const imagePreview = document.getElementById('imagePreview');
-    const fileSizeText = document.getElementById('fileSizeText');
+    const origSizeText = document.getElementById('origSizeText');
+    const newSizeText = document.getElementById('newSizeText');
+    const savingsText = document.getElementById('savingsText');
     const downloadBtn = document.getElementById('downloadBtn');
 
     let loadedImg = null;
+    let originalFileKB = 0;
+    let selectedFormat = 'image/jpeg';
     let finalBlob = null;
 
     fileInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
 
+      originalFileKB = (file.size / 1024).toFixed(2);
+      origSizeText.textContent = formatBytes(file.size);
+
+      // Auto select format based on upload
+      if(file.type === 'image/png') setFormat('image/png');
+      else if(file.type === 'image/webp') setFormat('image/webp');
+      else setFormat('image/jpeg');
+
       const reader = new FileReader();
       reader.onload = (evt) => {
         loadedImg = new Image();
         loadedImg.src = evt.target.result;
         loadedImg.onload = () => {
-          controlsBox.style.display = 'block';
-          previewBox.style.display = 'block';
+          editorSection.style.display = 'block';
           compressImage();
         };
       };
@@ -99,6 +179,22 @@
       qualityText.textContent = qualitySlider.value + '%';
       compressImage();
     });
+
+    function changeQuality(step) {
+      let val = parseInt(qualitySlider.value) + step;
+      val = Math.min(100, Math.max(1, val));
+      qualitySlider.value = val;
+      qualityText.textContent = val + '%';
+      compressImage();
+    }
+
+    function setFormat(fmt) {
+      selectedFormat = fmt;
+      document.getElementById('fmtJpeg').classList.toggle('active', fmt === 'image/jpeg');
+      document.getElementById('fmtPng').classList.toggle('active', fmt === 'image/png');
+      document.getElementById('fmtWebp').classList.toggle('active', fmt === 'image/webp');
+      compressImage();
+    }
 
     function applyTarget(targetKb) {
       if (!loadedImg) return;
@@ -139,17 +235,35 @@
       canvas.toBlob((blob) => {
         finalBlob = blob;
         imagePreview.src = URL.createObjectURL(blob);
-        const kbSize = (blob.size / 1024).toFixed(1);
-        fileSizeText.textContent = `Size: ${kbSize} KB`;
-      }, 'image/jpeg', quality);
+        
+        const newKb = (blob.size / 1024).toFixed(1);
+        newSizeText.textContent = formatBytes(blob.size);
+
+        let saved = Math.round((1 - (blob.size / 1024 / originalFileKB)) * 100);
+        saved = saved < 0 ? 0 : saved;
+        savingsText.textContent = `${saved}% smaller file`;
+
+        let ext = selectedFormat.split('/')[1].toUpperCase();
+        downloadBtn.textContent = `Download ${ext} (${formatBytes(blob.size)})`;
+      }, selectedFormat, quality);
+    }
+
+    function formatBytes(bytes) {
+      if (bytes >= 1048576) return (bytes / 1048576).toFixed(2) + ' MB';
+      return (bytes / 1024).toFixed(1) + ' KB';
     }
 
     downloadBtn.addEventListener('click', () => {
       if (!finalBlob) return;
+
+      // MONETAG DIRECT LINK TRIGGER (Apna Direct Link yahan paste karein)
+      // window.open('YOUR_MONETAG_DIRECT_LINK', '_blank');
+
       const downloadUrl = URL.createObjectURL(finalBlob);
       const a = document.createElement('a');
       a.href = downloadUrl;
-      a.download = 'compressed-image.jpg';
+      let ext = selectedFormat === 'image/jpeg' ? 'jpg' : selectedFormat.split('/')[1];
+      a.download = `compressed-image.${ext}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

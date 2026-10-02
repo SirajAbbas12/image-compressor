@@ -76,10 +76,9 @@
     <div class="tagline-box">
       <div class="tagline-sub">A LIGHTER WAY TO SHARE</div>
       <div class="tagline-title">Less weight.<br><span>Same image.</span></div>
-      <div class="tagline-desc">Make images smaller for Govt Forms (<20KB / <50KB). No upload to server.</div>
+      <div class="tagline-desc">Make images smaller for Govt Forms (&lt;20KB / &lt;50KB). No upload to server.</div>
     </div>
 
-    <!-- Upload Box -->
     <div class="card" id="uploadCard" onclick="document.getElementById('fileInput').click()">
       <div class="icon-box">⇡</div>
       <div class="upload-title">Drop an image here</div>
@@ -87,7 +86,6 @@
       <input type="file" id="fileInput" accept="image/jpeg, image/png, image/webp">
     </div>
 
-    <!-- Editor / Preview Box -->
     <div class="editor-section" id="editorSection">
       
       <div class="preview-card">
@@ -105,8 +103,8 @@
         <div class="control-desc">Tune the balance between a crisp image and a tiny file.</div>
 
         <div class="preset-row">
-          <button class="preset-btn" onclick="applyTarget(20)">Target < 20KB</button>
-          <button class="preset-btn" onclick="applyTarget(50)">Target < 50KB</button>
+          <button class="preset-btn" onclick="applyTarget(20)">Target &lt; 20KB</button>
+          <button class="preset-btn" onclick="applyTarget(50)">Target &lt; 50KB</button>
         </div>
 
         <div class="label-row">
@@ -151,6 +149,7 @@
     let originalFileKB = 0;
     let selectedFormat = 'image/jpeg';
     let finalBlob = null;
+    let currentTargetKb = null;
 
     fileInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
@@ -168,7 +167,7 @@
         loadedImg = new Image();
         loadedImg.src = evt.target.result;
         loadedImg.onload = () => {
-          uploadCard.style.display = 'none'; // Upload Box hide ho jayega
+          uploadCard.style.display = 'none';
           editorSection.style.display = 'block';
           compressImage();
         };
@@ -177,11 +176,13 @@
     });
 
     qualitySlider.addEventListener('input', () => {
+      currentTargetKb = null;
       qualityText.textContent = qualitySlider.value + '%';
       compressImage();
     });
 
     function changeQuality(step) {
+      currentTargetKb = null;
       let val = parseInt(qualitySlider.value) + step;
       val = Math.min(100, Math.max(1, val));
       qualitySlider.value = val;
@@ -194,28 +195,49 @@
       document.getElementById('fmtJpeg').classList.toggle('active', fmt === 'image/jpeg');
       document.getElementById('fmtPng').classList.toggle('active', fmt === 'image/png');
       document.getElementById('fmtWebp').classList.toggle('active', fmt === 'image/webp');
-      compressImage();
+      
+      if(currentTargetKb) {
+        applyTarget(currentTargetKb);
+      } else {
+        compressImage();
+      }
     }
 
     async function applyTarget(targetKb) {
       if (!loadedImg) return;
+      currentTargetKb = targetKb;
 
-      let quality = 0.9;
-      let maxDim = 1200;
-      let blob = null;
+      let minQ = 0.05, maxQ = 0.95;
+      let bestBlob = null;
+      let bestQ = 0.5;
 
-      for (let i = 0; i < 12; i++) {
-        blob = await generateBlob(maxDim, quality);
-        if (blob.size / 1024 <= targetKb || maxDim <= 150) break;
-        
-        quality -= 0.12;
-        maxDim -= 120;
+      // Precision binary search for exact target fit
+      for (let scale = 1200; scale >= 200; scale -= 200) {
+        minQ = 0.05; maxQ = 0.95;
+        for (let i = 0; i < 7; i++) {
+          let midQ = (minQ + maxQ) / 2;
+          let blob = await generateBlob(scale, midQ);
+          let kb = blob.size / 1024;
+
+          if (kb <= targetKb) {
+            bestBlob = blob;
+            bestQ = midQ;
+            minQ = midQ; 
+          } else {
+            maxQ = midQ;
+          }
+        }
+        if (bestBlob && (bestBlob.size / 1024) <= targetKb) break;
       }
 
-      qualitySlider.value = Math.max(10, Math.round(quality * 100));
+      if (!bestBlob) {
+        bestBlob = await generateBlob(300, 0.05);
+      }
+
+      qualitySlider.value = Math.max(1, Math.round(bestQ * 100));
       qualityText.textContent = qualitySlider.value + '%';
       
-      updatePreview(blob);
+      updatePreview(bestBlob);
     }
 
     function compressImage() {
@@ -288,5 +310,5 @@
     });
   </script>
 </body>
-      </html>
+</html>
 

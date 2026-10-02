@@ -80,7 +80,7 @@
     </div>
 
     <!-- Upload Box -->
-    <div class="card" onclick="document.getElementById('fileInput').click()">
+    <div class="card" id="uploadCard" onclick="document.getElementById('fileInput').click()">
       <div class="icon-box">⇡</div>
       <div class="upload-title">Drop an image here</div>
       <div class="upload-sub">JPG, PNG, WEBP, GIF · up to 50 MB</div>
@@ -138,6 +138,7 @@
   <script>
     const fileInput = document.getElementById('fileInput');
     const editorSection = document.getElementById('editorSection');
+    const uploadCard = document.getElementById('uploadCard');
     const qualitySlider = document.getElementById('qualitySlider');
     const qualityText = document.getElementById('qualityText');
     const imagePreview = document.getElementById('imagePreview');
@@ -155,10 +156,9 @@
       const file = e.target.files[0];
       if (!file) return;
 
-      originalFileKB = (file.size / 1024).toFixed(2);
+      originalFileKB = file.size / 1024;
       origSizeText.textContent = formatBytes(file.size);
 
-      // Auto select format based on upload
       if(file.type === 'image/png') setFormat('image/png');
       else if(file.type === 'image/webp') setFormat('image/webp');
       else setFormat('image/jpeg');
@@ -168,6 +168,7 @@
         loadedImg = new Image();
         loadedImg.src = evt.target.result;
         loadedImg.onload = () => {
+          uploadCard.style.display = 'none'; // Upload Box hide ho jayega
           editorSection.style.display = 'block';
           compressImage();
         };
@@ -196,56 +197,77 @@
       compressImage();
     }
 
-    function applyTarget(targetKb) {
-      if (!loadedImg) return;
-      let targetQuality = targetKb === 20 ? 15 : 35;
-      qualitySlider.value = targetQuality;
-      qualityText.textContent = targetQuality + '%';
-      compressImage(targetKb);
-    }
-
-    function compressImage(targetKb = null) {
+    async function applyTarget(targetKb) {
       if (!loadedImg) return;
 
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      let quality = qualitySlider.value / 100;
+      let quality = 0.9;
+      let maxDim = 1200;
+      let blob = null;
 
-      let maxDimension = 1200;
-      if (quality < 0.25 || targetKb === 20) maxDimension = 400;
-      else if (quality < 0.45 || targetKb === 50) maxDimension = 600;
-
-      let width = loadedImg.width;
-      let height = loadedImg.height;
-
-      if (width > maxDimension || height > maxDimension) {
-        if (width > height) {
-          height = Math.round((height * maxDimension) / width);
-          width = maxDimension;
-        } else {
-          width = Math.round((width * maxDimension) / height);
-          height = maxDimension;
-        }
+      for (let i = 0; i < 12; i++) {
+        blob = await generateBlob(maxDim, quality);
+        if (blob.size / 1024 <= targetKb || maxDim <= 150) break;
+        
+        quality -= 0.12;
+        maxDim -= 120;
       }
 
-      canvas.width = width;
-      canvas.height = height;
-      ctx.drawImage(loadedImg, 0, 0, width, height);
+      qualitySlider.value = Math.max(10, Math.round(quality * 100));
+      qualityText.textContent = qualitySlider.value + '%';
+      
+      updatePreview(blob);
+    }
 
-      canvas.toBlob((blob) => {
-        finalBlob = blob;
-        imagePreview.src = URL.createObjectURL(blob);
-        
-        const newKb = (blob.size / 1024).toFixed(1);
-        newSizeText.textContent = formatBytes(blob.size);
+    function compressImage() {
+      if (!loadedImg) return;
+      let quality = qualitySlider.value / 100;
+      
+      generateBlob(1200, quality).then(blob => {
+        updatePreview(blob);
+      });
+    }
 
-        let saved = Math.round((1 - (blob.size / 1024 / originalFileKB)) * 100);
-        saved = saved < 0 ? 0 : saved;
-        savingsText.textContent = `${saved}% smaller file`;
+    function generateBlob(maxDimension, quality) {
+      return new Promise((resolve) => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
 
-        let ext = selectedFormat.split('/')[1].toUpperCase();
-        downloadBtn.textContent = `Download ${ext} (${formatBytes(blob.size)})`;
-      }, selectedFormat, quality);
+        let width = loadedImg.width;
+        let height = loadedImg.height;
+
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(loadedImg, 0, 0, width, height);
+
+        canvas.toBlob((blob) => {
+          resolve(blob);
+        }, selectedFormat, quality);
+      });
+    }
+
+    function updatePreview(blob) {
+      finalBlob = blob;
+      imagePreview.src = URL.createObjectURL(blob);
+      
+      newSizeText.textContent = formatBytes(blob.size);
+
+      let currentKB = blob.size / 1024;
+      let saved = Math.round((1 - (currentKB / originalFileKB)) * 100);
+      saved = saved < 0 ? 0 : saved;
+      savingsText.textContent = `${saved}% smaller file`;
+
+      let ext = selectedFormat === 'image/jpeg' ? 'JPEG' : selectedFormat.split('/')[1].toUpperCase();
+      downloadBtn.textContent = `Download ${ext} (${formatBytes(blob.size)})`;
     }
 
     function formatBytes(bytes) {
@@ -255,10 +277,6 @@
 
     downloadBtn.addEventListener('click', () => {
       if (!finalBlob) return;
-
-      // MONETAG DIRECT LINK TRIGGER (Apna Direct Link yahan paste karein)
-      // window.open('YOUR_MONETAG_DIRECT_LINK', '_blank');
-
       const downloadUrl = URL.createObjectURL(finalBlob);
       const a = document.createElement('a');
       a.href = downloadUrl;
@@ -270,4 +288,5 @@
     });
   </script>
 </body>
-</html>
+      </html>
+

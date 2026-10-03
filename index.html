@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
+  <meta name="google-site-verification" content="apyoq-fEIdQEJmTVqw9CJWEmZLuGPJTSGVWGW2un_HM" />
+
   <title>Image Compressor to 20KB & 50KB Online - Free Image Utility</title>
   <meta name="title" content="Image Compressor to 20KB & 50KB Online - Free Image Utility">
   <meta name="description" content="Compress JPG, PNG, and WEBP images strictly under 20KB and 50KB for online Govt application forms, SSC, UPSC, and passport photo uploads.">
@@ -235,13 +237,11 @@
     async function applyTarget(targetKb) {
       if (!loadedImg) return;
 
-      // STRICT SAFETY BUFFER: Target 20 -> 18.2KB max, Target 50 -> 46.5KB max
       const safeTargetKB = targetKb === 20 ? 18.2 : 46.5;
 
       let bestBlob = null;
       let bestQ = 75;
 
-      // Iterative dimension scaling to guarantee strict size reduction for JPG, WEBP, and PNG
       const scales = [1200, 1000, 800, 600, 500, 400, 300, 200, 150, 100];
 
       for (let scale of scales) {
@@ -255,9 +255,9 @@
           if (kb <= safeTargetKB) {
             bestBlob = blob;
             bestQ = midQ;
-            minQ = midQ; // Try higher quality within safe limit
+            minQ = midQ;
           } else {
-            maxQ = midQ; // Scale down quality
+            maxQ = midQ;
           }
         }
 
@@ -304,7 +304,6 @@
         canvas.width = width;
         canvas.height = height;
 
-        // PNG canvas background handling
         if (selectedFormat === 'image/jpeg') {
           ctx.fillStyle = '#FFFFFF';
           ctx.fillRect(0, 0, width, height);
@@ -312,7 +311,6 @@
 
         ctx.drawImage(loadedImg, 0, 0, width, height);
 
-        // Native PNG doesn't support quality param, force JPEG fallback internally if PNG size exceeds canvas bounds
         if (selectedFormat === 'image/png' && quality < 0.9) {
           canvas.toBlob((blob) => {
             resolve(blob);
@@ -359,4 +357,3 @@
   </script>
 </body>
 </html>
-

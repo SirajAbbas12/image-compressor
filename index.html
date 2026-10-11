@@ -93,7 +93,7 @@
 
   <div class="container">
     <div class="header">
-      <div class="logo">⚡ squeeze / image utility</div>
+      <div class="logo">âš¡ squeeze / image utility</div>
       <div class="badge">100% LOCAL PROCESSING</div>
     </div>
 
@@ -103,14 +103,10 @@
       <div class="tagline-desc">Compress JPG, PNG, WEBP images strictly under 20KB & 50KB for Govt Forms.</div>
     </div>
 
-    <div class="ad-banner" id="ad-top">
-      <span>Advertisement Placeholder</span>
-    </div>
-
     <div class="card" id="uploadCard" onclick="document.getElementById('fileInput').click()">
-      <div class="icon-box">⇡</div>
+      <div class="icon-box">â‡¡</div>
       <div class="upload-title">Drop an image here</div>
-      <div class="upload-sub">JPG, PNG, WEBP · up to 50 MB</div>
+      <div class="upload-sub">JPG, PNG, WEBP Â· up to 50 MB</div>
       <input type="file" id="fileInput" accept="image/jpeg, image/png, image/webp">
     </div>
 
@@ -141,7 +137,7 @@
         </div>
 
         <div class="slider-row">
-          <button class="step-btn" onclick="changeQuality(-1)">−</button>
+          <button class="step-btn" onclick="changeQuality(-1)">âˆ’</button>
           <input type="range" id="qualitySlider" min="1" max="100" value="75">
           <button class="step-btn" onclick="changeQuality(1)">+</button>
         </div>
@@ -153,13 +149,12 @@
           <button class="format-btn" id="fmtWebp" onclick="setFormat('image/webp')">WEBP</button>
         </div>
 
+        <div class="control-desc" id="fmtNote">Tip: Govt portals (SSC, UPSC, Railway) usually accept JPG only. Use JPG for forms.</div>
+
         <div class="savings-badge" id="savingsText">0% smaller file</div>
 
         <button class="btn-download" id="downloadBtn">Download Image</button>
-
-        <div class="ad-banner" id="ad-bottom" style="margin-top:20px;">
-          <span>Advertisement Placeholder</span>
-        </div>
+        <button class="preset-btn" style="width:100%;margin-top:10px;" onclick="resetTool()">Choose another image</button>
       </div>
 
     </div>
@@ -365,9 +360,9 @@
       const realSizeKB = blob.size / 1024;
       newSizeText.textContent = formatBytes(blob.size);
 
-      let saved = Math.round((1 - (realSizeKB / originalFileKB)) * 100);
-      saved = saved < 0 ? 0 : saved;
-      savingsText.textContent = `${saved}% smaller file`;
+      let saved = (1 - (realSizeKB / originalFileKB)) * 100;
+      saved = saved < 0 ? 0 : Math.min(saved, 99.9);
+      savingsText.textContent = `${saved >= 99 ? saved.toFixed(1) : Math.round(saved)}% smaller file`;
 
       let ext = selectedFormat === 'image/jpeg' ? 'JPG' : selectedFormat.split('/')[1].toUpperCase();
       downloadBtn.textContent = `Download ${ext} (${formatBytes(blob.size)})`;
@@ -376,6 +371,20 @@
     function formatBytes(bytes) {
       if (bytes >= 1048576) return (bytes / 1048576).toFixed(2) + ' MB';
       return (bytes / 1024).toFixed(1) + ' KB';
+    }
+
+    function resetTool() {
+      loadedImg = null;
+      finalBlob = null;
+      activeTarget = null;
+      activeMaxDim = 1000;
+      fileInput.value = '';
+      qualitySlider.value = 75;
+      qualityText.textContent = '75%';
+      markFormat('image/jpeg');
+      editorSection.style.display = 'none';
+      uploadCard.style.display = 'block';
+      window.scrollTo(0, 0);
     }
 
     downloadBtn.addEventListener('click', () => {

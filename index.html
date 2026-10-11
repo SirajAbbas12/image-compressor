@@ -190,15 +190,18 @@
     let originalFileKB = 0;
     let selectedFormat = 'image/jpeg';
     let finalBlob = null;
+    let activeTarget = null;   // 20 / 50 when a target preset is active, else null (manual mode)
+    let activeMaxDim = 1000;   // image dimension used by the last compression
+    let lastPreviewUrl = null;
 
-    fileInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
+    function handleFile(file) {
+      if (!file || !/^image\/(jpeg|png|webp)$/.test(file.type)) return;
 
       originalFileKB = file.size / 1024;
       origSizeText.textContent = formatBytes(file.size);
-
-      setFormat('image/jpeg');
+      activeTarget = null;
+      activeMaxDim = 1000;
+      markFormat('image/jpeg');
 
       const reader = new FileReader();
       reader.onload = (evt) => {
@@ -211,14 +214,30 @@
         };
       };
       reader.readAsDataURL(file);
+    }
+
+    fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
+
+    // Drag & drop support
+    ['dragenter', 'dragover'].forEach(ev => uploadCard.addEventListener(ev, (e) => {
+      e.preventDefault();
+      uploadCard.style.borderColor = '#3b82f6';
+    }));
+    uploadCard.addEventListener('dragleave', () => { uploadCard.style.borderColor = ''; });
+    uploadCard.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadCard.style.borderColor = '';
+      handleFile(e.dataTransfer.files[0]);
     });
 
     qualitySlider.addEventListener('input', () => {
+      activeTarget = null;
       qualityText.textContent = qualitySlider.value + '%';
       compressImage();
     });
 
     function changeQuality(step) {
+      activeTarget = null;
       let val = parseInt(qualitySlider.value) + step;
       val = Math.min(100, Math.max(1, val));
       qualitySlider.value = val;
@@ -226,27 +245,41 @@
       compressImage();
     }
 
-    function setFormat(fmt) {
+    function markFormat(fmt) {
       selectedFormat = fmt;
       document.getElementById('fmtJpeg').classList.toggle('active', fmt === 'image/jpeg');
       document.getElementById('fmtPng').classList.toggle('active', fmt === 'image/png');
       document.getElementById('fmtWebp').classList.toggle('active', fmt === 'image/webp');
-      compressImage();
+    }
+
+    function setFormat(fmt) {
+      markFormat(fmt);
+      if (activeTarget) applyTarget(activeTarget);
+      else compressImage();
     }
 
     async function applyTarget(targetKb) {
       if (!loadedImg) return;
+      activeTarget = targetKb;
+
+      // PNG is lossless in browsers (no quality control), so a strict KB target needs JPG
+      if (selectedFormat === 'image/png') markFormat('image/jpeg');
+
+      downloadBtn.textContent = 'Compressing...';
 
       const safeTargetKB = targetKb === 20 ? 18.2 : 46.5;
 
       let bestBlob = null;
-      let bestQ = 75;
+      let bestQ = 0.75;
+      let bestScale = 100;
 
-      const scales = [1200, 1000, 800, 600, 500, 400, 300, 200, 150, 100];
+      // Start from the image's own size (max 1200) so small images are never enlarged
+      const maxSide = Math.min(Math.max(loadedImg.width, loadedImg.height), 1200);
+      const scales = [maxSide, ...[1000, 800, 600, 500, 400, 300, 200, 150, 100].filter(s => s < maxSide)];
 
       for (let scale of scales) {
         let minQ = 0.02, maxQ = 0.95;
-        
+
         for (let i = 0; i < 8; i++) {
           let midQ = (minQ + maxQ) / 2;
           let blob = await generateBlob(scale, midQ);
@@ -255,30 +288,34 @@
           if (kb <= safeTargetKB) {
             bestBlob = blob;
             bestQ = midQ;
+            bestScale = scale;
             minQ = midQ;
           } else {
             maxQ = midQ;
           }
         }
 
-        if (bestBlob && (bestBlob.size / 1024) <= safeTargetKB) break;
+        if (bestBlob) break;
       }
 
       if (!bestBlob) {
         bestBlob = await generateBlob(100, 0.02);
+        bestScale = 100;
+        bestQ = 0.02;
       }
 
+      activeMaxDim = bestScale;
       qualitySlider.value = Math.max(1, Math.round(bestQ * 100));
       qualityText.textContent = qualitySlider.value + '%';
-      
+
       updatePreview(bestBlob);
     }
 
     function compressImage() {
       if (!loadedImg) return;
       let quality = qualitySlider.value / 100;
-      
-      generateBlob(1000, quality).then(blob => {
+
+      generateBlob(activeMaxDim, quality).then(blob => {
         updatePreview(blob);
       });
     }
@@ -311,21 +348,19 @@
 
         ctx.drawImage(loadedImg, 0, 0, width, height);
 
-        if (selectedFormat === 'image/png' && quality < 0.9) {
-          canvas.toBlob((blob) => {
-            resolve(blob);
-          }, 'image/png');
+        if (selectedFormat === 'image/png') {
+          canvas.toBlob((blob) => resolve(blob), 'image/png');
         } else {
-          canvas.toBlob((blob) => {
-            resolve(blob);
-          }, selectedFormat, quality);
+          canvas.toBlob((blob) => resolve(blob), selectedFormat, quality);
         }
       });
     }
 
     function updatePreview(blob) {
       finalBlob = blob;
-      imagePreview.src = URL.createObjectURL(blob);
+      if (lastPreviewUrl) URL.revokeObjectURL(lastPreviewUrl);
+      lastPreviewUrl = URL.createObjectURL(blob);
+      imagePreview.src = lastPreviewUrl;
       
       const realSizeKB = blob.size / 1024;
       newSizeText.textContent = formatBytes(blob.size);

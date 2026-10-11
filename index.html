@@ -93,7 +93,7 @@
 
   <div class="container">
     <div class="header">
-      <div class="logo">âš¡ squeeze / image utility</div>
+      <div class="logo">&#9889; squeeze / image utility</div>
       <div class="badge">100% LOCAL PROCESSING</div>
     </div>
 
@@ -104,9 +104,9 @@
     </div>
 
     <div class="card" id="uploadCard" onclick="document.getElementById('fileInput').click()">
-      <div class="icon-box">â‡¡</div>
+      <div class="icon-box">&#8679;</div>
       <div class="upload-title">Drop an image here</div>
-      <div class="upload-sub">JPG, PNG, WEBP Â· up to 50 MB</div>
+      <div class="upload-sub">JPG, PNG, WEBP &middot; up to 50 MB</div>
       <input type="file" id="fileInput" accept="image/jpeg, image/png, image/webp">
     </div>
 
@@ -137,7 +137,7 @@
         </div>
 
         <div class="slider-row">
-          <button class="step-btn" onclick="changeQuality(-1)">âˆ’</button>
+          <button class="step-btn" onclick="changeQuality(-1)">&minus;</button>
           <input type="range" id="qualitySlider" min="1" max="100" value="75">
           <button class="step-btn" onclick="changeQuality(1)">+</button>
         </div>
@@ -290,7 +290,8 @@
           }
         }
 
-        if (bestBlob) break;
+        // Stop at the first size where quality is decent (40%+); otherwise try a smaller size
+        if (bestBlob && bestQ >= 0.4) break;
       }
 
       if (!bestBlob) {
